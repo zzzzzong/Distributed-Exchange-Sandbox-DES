@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package exchange;
+
+service ComplianceService {
+  rpc CheckDepositLimit (ComplianceRequest) returns (ComplianceResponse);
+}
+
+service SettlementService {
+  rpc ProcessSettlement (SettlementRequest) returns (SettlementResponse);
+}
+
+message ComplianceRequest {
+  string user_id = 1;
+  double amount = 2;
+  string currency = 3;
+}
+
+message ComplianceResponse {
+  bool approved = 1;
+  string message = 2;
+}
+
+message SettlementRequest {
+  string user_id = 1;
+  double amount = 2;
+  string currency = 3;
+  string transaction_id = 4;
+}
+
+message SettlementResponse {
+  bool success = 1;
+  string transaction_id = 2;
+  double current_balance = 3;
+}
