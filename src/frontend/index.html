@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Distributed Exchange Sandbox (DES) - Frontend</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #fafafa; margin: 30px; }
+        .card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; max-width: 600px; margin-bottom: 20px; }
+        h3 { margin-top: 0; color: #333; }
+        .weak-net-box { border: 1.5px dashed #f44336; background: #ffebee; padding: 15px; border-radius: 6px; }
+        button { background: #4caf50; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background: #43a047; }
+        .log-box { background: #333; color: #fff; padding: 15px; border-radius: 4px; font-family: monospace; max-height: 250px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+    <h2>Distributed Exchange Sandbox (DES) - 前端主控台</h2>
+
+    <!-- 實時行情展示 -->
+    <div class="card">
+        <h3>1. 實時行情廣播 (WebSockets - 轉發自真實交易所)</h3>
+        <p>BTC/USD 最新價格: <span id="price-display" style="font-size: 24px; font-weight: bold; color: #2196f3;">連線中...</span></p>
+    </div>
+
+    <!-- 入金表單與弱網模擬 -->
+    <div class="card">
+        <h3>2. 法幣合規充值閘道 (REST API)</h3>
+        <div style="margin-bottom: 15px;">
+            <label>入金金額 (USD): </label>
+            <input type="number" id="deposit-amount" value="100" style="width: 80px; padding: 5px;">
+        </div>
+        
+        <div class="weak-net-box" style="margin-bottom: 15px;">
+            <h4>弱網模擬器 (Weak Network Emulator)</h4>
+            <label><input type="checkbox" id="weak-net-toggle"> 啟用弱網模擬</label>
+            <p style="font-size: 12px; color: #555; margin-top: 5px;">
+                勾選後，發送的請求將被注入 <strong>3 秒延遲</strong>，且有 <strong>20% 的機率直接丟包</strong> (觸發前端超時)。
+            </p>
+        </div>
+
+        <button id="deposit-btn" onclick="executeDeposit()">確認入金 (Deposit)</button>
+        <button id="retry-btn" onclick="executeDeposit(true)" style="background: #2196f3; display: none;">使用相同 Idempotency-Key 重試</button>
+    </div>
+
+    <!-- 日誌輸出區 -->
+    <div class="card" style="max-width: 800px;">
+        <h3>運行日誌 (Execution Logs)</h3>
+        <div id="logs" class="log-box"></div>
+    </div>
+
+    <script>
+        // 連接至本地的 WebSocket 轉發服務
+        let ws = new WebSocket("ws://localhost:8765");
+        let currentIdempotencyKey = null;
+
+        // 1. 處理 WebSocket 數據
+        ws.onmessage = function(event) {
+            let data = JSON.parse(event.data);
+            document.getElementById("price-display").innerText = `$${data.price} USD`;
+        };
+
+        ws.onclose = function() {
+            document.getElementById("price-display").innerText = "連線已中斷";
+        };
+
+        // 日誌輔助函數
+        function log(msg, error = false) {
+            let logs = document.getElementById("logs");
+            let prefix = error ? "[ERROR] " : "[INFO] ";
+            let color = error ? "#ff8a80" : "#b2ff59";
+            logs.innerHTML += `<div style="color: ${color}">${new Date().toLocaleTimeString()} ${prefix}${msg}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        // 2. 處理入金請求 (支援弱網模擬與冪等性重試)
+        async function executeDeposit(isRetry = false) {
+            const amount = parseFloat(document.getElementById("deposit-amount").value);
+            const weakNetEnabled = document.getElementById("weak-net-toggle").checked;
+            
+            if (!isRetry) {
+                // 如果是新請求，隨機產生一個全新的 Idempotency-Key
+                currentIdempotencyKey = 'idemp-' + Math.random().toString(36).substring(2, 15);
+                document.getElementById("retry-btn").style.display = "none";
+            }
+
+            log(`發送入金請求 $${amount} USD. Key: ${currentIdempotencyKey}`);
+
+            // 網路模擬過濾層 (Network Emulation)
+            if (weakNetEnabled) {
+                log("弱網啟用：正在注入網路傳輸延遲...");
+                await new Promise(resolve => setTimeout(resolve, 3000)); // 注入 3 秒延遲
+                
+                // 20% 的機率模擬丟包
+                if (Math.random() < 0.20) {
+                    log("弱網異常：封包已丟失！觸發前端超時錯誤。", true);
+                    document.getElementById("retry-btn").style.display = "inline-block";
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch("http://localhost:8000/fiat/deposit", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Idempotency-Key": currentIdempotencyKey
+                    },
+                    body: JSON.stringify({
+                        user_id: "user123",
+                        amount: amount,
+                        currency: "USD"
+                    })
+                });
+
+                if (!response.ok) {
+                    let err = await response.json();
+                    throw new Error(err.detail || "HTTP 請求失敗");
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    log(`入金成功！交易序號: ${result.transaction_id}. 最新餘額: $${result.new_balance} USD`);
+                    document.getElementById("retry-btn").style.display = "none";
+                } else {
+                    log(`交易遭合規拒絕: ${result.reason}`, true);
+                }
+            } catch (err) {
+                log(`網絡請求失敗: ${err.message}`, true);
+                // 出現網絡超時或斷線時，顯示重試按鈕，允許使用者以相同的 Key 重新發送
+                document.getElementById("retry-btn").style.display = "inline-block";
+            }
+        }
+    </script>
+</body>
+</html>
