@@ -1,4 +1,4 @@
-# Binance Light Sandbox (QA MVP)
+Distributed Exchange Sandbox (DES)
 
 > [English](#english-version) | [繁體中文](#繁體中文版)
 
