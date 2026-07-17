@@ -1,2 +1,16 @@
+# 忽略虛擬環境資料夾
+des-venv/
+
+# 忽略所有級別的 pycache 快取資料夾與檔案
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 忽略本地編輯器與 IDE 設定檔
+.vscode/
+.idea/
+
+# 忽略 gRPC 自動生成的連接代碼
 src/exchange_pb2.py
 src/exchange_pb2_grpc.py
