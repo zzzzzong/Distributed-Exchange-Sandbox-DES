@@ -1,11 +1,12 @@
-# 忽略名為 des-venv 的虛擬環境資料夾
+# 忽略虛擬環境資料夾
 des-venv/
 
-# 忽略 Python 運行期自動產生的編譯快取檔
-__pycache__/
+# 忽略所有級別的 pycache 快取資料夾與檔案
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# 忽略 VS Code 本地配置資料夾
+# 忽略本地編輯器設定
 .vscode/
+.idea/
