@@ -1,8 +1,8 @@
-fastapi==0.139.2
-uvicorn==0.51.0
-websockets==16.1
-grpcio==1.82.1
-grpcio-tools==1.82.1
-pydantic==2.13.4
-pytest==9.1.1
-selenium==4.46.0
+fastapi==0.139.2      # 打造 API Gateway 的主角，現代極速的 Python Web 框架。
+uvicorn==0.51.0       # FastAPI 的底層伺服器引擎，負責在 Port 8000 跑起我們的 Gateway。
+websockets==16.1      # 用來建立實時雙向通訊，我們的行情引擎靠它連線 Binance 與推送價格給前端。
+grpcio==1.82.1        # gRPC 的核心函式庫，合規與結算微服務通訊的底層基礎。
+grpcio-tools==1.82.1  # 包含 protoc 編譯器，負責把 .proto 翻譯成 Python 代碼。
+pydantic==2.13.4      # FastAPI 的好幫手，負責資料驗證（例如自動檢查前端傳來的 JSON 格式對不對）。
+pytest==9.1.1         # SDET 必備的自動化測試框架，用來寫我們的單元與整合測試。
+selenium==4.46.0      # 瀏覽器自動化工具，用來寫模擬用戶點擊網頁的 E2E 測試。
