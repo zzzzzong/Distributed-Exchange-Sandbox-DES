@@ -6,3 +6,4 @@ grpcio-tools==1.82.1  # 包含 protoc 編譯器，負責把 .proto 翻譯成 Pyt
 pydantic==2.13.4      # FastAPI 的好幫手，負責資料驗證（例如自動檢查前端傳來的 JSON 格式對不對）。
 pytest==9.1.1         # SDET 必備的自動化測試框架，用來寫我們的單元與整合測試。
 selenium==4.46.0      # 瀏覽器自動化工具，用來寫模擬用戶點擊網頁的 E2E 測試。
+requests>=2.31.0
