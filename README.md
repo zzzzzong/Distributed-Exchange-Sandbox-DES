@@ -145,6 +145,10 @@ des/                             # 根目錄 (專案名稱)
    pip install --upgrade pip setuptools wheel
    pip install -r requirements.txt
    ```
+   安裝 k6 效能測試工具（k6 是一個基於 Go 核心的高性能、代碼化負載測試工具，非 Python 套件）：
+
+    - Mac 安裝方式：在終端機輸入 `brew install k6`
+    - Linux 安裝方式：在終端機輸入 `sudo apt install k6`
 
 2. **協定編譯**
 
