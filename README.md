@@ -229,3 +229,35 @@ des/                             # 根目錄 (專案名稱)
    ```bash
    k6 run tests/performance/load_test.js
    ```
+
+## 🕵️ 手動驗證與 QA 測試指南 (Manual QA Testing Scenarios)
+
+在進入自動化測試開發前，QA 工程師需完成以下核心業務的手動驗證：
+
+### Test Case 1: 正常法幣充值 (Normal Fiat Deposit)
+*   **前置條件**：確認「弱網模擬」**未勾選**。
+*   **測試步驟**：在入金金額輸入 `100`，點擊「確認入金」。
+*   **預期結果**：前端顯示入金成功，最新餘額更新。後台 `Settlement Svc` 印出 `Ledger updated for user123: 150.0 -> 250.0`，完成複式記帳。
+
+### Test Case 2: 合規上限攔截測試 (Compliance Limit Block)
+*   **前置條件**：確認「弱網模擬」**未勾選**。
+*   **測試步驟**：在入金金額輸入 `1500`（大於 $1000 USD 限額），點擊「確認入金」。
+*   **預期結果**：前端顯示 `交易遭合規拒絕: Compliance check failed`。後台 `Compliance Svc` 拒絕請求，且 `Settlement Svc` **沒有**任何結算日誌，證明風險被成功隔離。
+
+### Test Case 3: 弱網丟包與冪等性重試 (Weak Network & Idempotency Retry)
+*   **前置條件**：**勾選**「啟用弱網模擬」。
+*   **測試步驟**：輸入金額 `200`，點擊「確認入金」。等待 3 秒若觸發 20% 丟包率，前端報錯並顯示「使用相同 Idempotency-Key 重試」按鈕。點擊該重試按鈕。
+*   **預期結果**：前端顯示交易成功。後台 `API Gateway` 印出 `Idempotency hit for key... Returning cached response.`，且 `Settlement Svc` 僅執行一次餘額更新，成功防止重複扣款。
+
+### Test Case 4: 即時行情流觀測 (Market Data Stream)
+*   **預期結果**：放著網頁不動，最上方的「BTC/USD 最新價格」必須毫秒級不間斷地自動刷新，不可中斷。
+
+---
+
+## 🧪 自動化測試套件開發計畫 (Automation Test Plan)
+
+在完成手動驗證後，我們將透過以下測試框架確保系統具備防止 Regression (回歸) 的能力：
+
+1.  **整合測試 (Integration Testing)**：使用 `pytest` 繞過前端直接發送 HTTP 請求給閘道，驗證 REST & gRPC 的全鏈路整合與 Idempotency-Key 快取。包含使用 `test_api_gateway.py` 測試微服務全鏈路整合，以及使用 `test_idempotency.py` 測試弱網不穩定重試時的防重複扣款功能。
+2.  **端到端測試 (E2E Testing)**：使用 `test_weak_network.py` 與 `Selenium` 控制瀏覽器，自動驗證弱網下 UI 的 Loading 與 Timeout 機制，並斷言重試後的交易成功訊息。
+3.  **高併發性能測試 (Performance Testing)**：使用 `load_test.js` 與 `k6` 模擬高併發法幣充值，量測系統性能百分位數與有無併發死鎖。
